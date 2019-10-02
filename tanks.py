@@ -7,7 +7,7 @@ class Tank(pygame.sprite.Sprite):#создаем отвечающий за та�
     def __init__(self, group, x, y, img, color, columns, rows, hp):
         super().__init__(all_sprites)# с помощью класса супер мы используем методы родительского класса если при обращении функция будет искаться по алгоритму то сначала все связанное с спрайтами будет искать в братьях а потом уже в родителе
         self.add(group)# добавляем танк к команде танков указанной в вводимых переменных
-        self.g = group # в переменную движения танка так же записываем груп
+        self.groupofallsprites = group # в переменную движения танка так же записываем груп
         self.color = color#цвет танка = тип танка
         self.frames = []# массив с картинками
         self.bullets = pygame.sprite.Group()#делаем пули так же спрайтами
@@ -18,9 +18,9 @@ class Tank(pygame.sprite.Sprite):#создаем отвечающий за та�
         self.cur_frame = 0 #переменная текущий фрейм на ноль
         self.image = self.frames[self.cur_frame] # пишем в переменную картинку из массива которую контролируем 3 переменной
         self.rect = self.rect.move(x, y) #назначаем на рект движение на х у
-        self.d = "up"#переменная движения для пули
-        self.go = False #переменной присваеваем фолз
-        self.xm, self.ym = 0, 0 # отдельные переменные координат на ноль
+        self.directionoftank = "up"#переменная движения для пули
+        self.permissiontomovement = False #переменной присваеваем фолз
+        self.coordinateschangingtankspositionsx, self.coordinateschangingtankspositionsy = 0, 0 # отдельные переменные координат на ноль
 
     def cut_sheet(self, sheet, columns, rows):# брезаем изображение в 2 раза
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -32,11 +32,11 @@ class Tank(pygame.sprite.Sprite):#создаем отвечающий за та�
                     frame_location, self.rect.size)))# в массив с картинками добавляем созданный с помощью subsurface наследную копию ректангла с нужным размером и изображением
 
     def update(self): # если го имеет позицию тру то к координатам ректа прибавляем координаты-переменные
-        if self.go:
-            self.rect.x += self.xm
-            self.rect.y += self.ym
+        if self.permissiontomovement:
+            self.rect.x += self.coordinateschangingtankspositionsx
+            self.rect.y += self.coordinateschangingtankspositionsy
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)#изменяем текущий фрейм на плюс 1 и получаем остаток от деления его номера на все изображения
-            self.image = self.frames[self.cur_frame]#изображением становится элемент массива под номером текущий фрейм
+            self.image = self.frames[self.cur_frame]#изображением становится элемент массива под номером текущий фрейм кароче это для изменения картинки во время езды типо шини катятся
 
     def direction(self, key):
         x, y = self.rect.x, self.rect.y #обновленные переменные кооринат становятся координатами для движения
@@ -48,68 +48,68 @@ class Tank(pygame.sprite.Sprite):#создаем отвечающий за та�
         self.image = self.frames[self.cur_frame] #в переменную изображения пишем самое первое изображение в массиве
         self.rect = self.rect.move(x, y) # рект делаем стова движением а не изображением 
         self.frames = self.frames[-2:] # оставляем в массиве только два последних изображения 
-        self.d = key # ставим переменную для направления стрельбы в нужную позицию
+        self.directionoftank = key # ставим переменную для направления стрельбы в нужную позицию
 
-    def move(self, g):
+    def move(self, groupofallsprites):
         if self.hp > 0:#если танк жив
-            self.xm, self.ym = 0, 0 # координирующие переменные обнуляем 
-            if g == "up":# в зависимости от направления задаем переменные для движения 
-                self.ym -= 8
-            if g == "down":
-                self.ym += 8
-            if g == "right":
-                self.xm += 8
-            if g == "left":
-                self.xm -= 8
-            self.rect.x += self.xm#корректируем координаты остановки для проверки на врезания
-            self.rect.y += self.ym
-            h = 0#переменная новая на ноль 
-            if self.g == sprites_enemy:# если двигается враг то 
+            self.coordinateschangingtankspositionsx, self.coordinateschangingtankspositionsy = 0, 0 # координирующие переменные обнуляем 
+            if groupofallsprites == "up":# в зависимости от направления задаем переменные для движения 
+                self.coordinateschangingtankspositionsy -= 8
+            if groupofallsprites == "down":
+                self.coordinateschangingtankspositionsy += 8
+            if groupofallsprites == "right":
+                self.coordinateschangingtankspositionsx += 8
+            if groupofallsprites == "left":
+                self.coordinateschangingtankspositionsx -= 8
+            self.rect.x += self.coordinateschangingtankspositionsx#корректируем координаты остановки для проверки на врезания
+            self.rect.y += self.coordinateschangingtankspositionsy
+            counter = 0#переменная новая на ноль 
+            if self.groupofallsprites == sprites_enemy:# если двигается враг то 
                 for sp in sprites_enemy:# каждый враг из их множества
-                    k = pygame.sprite.spritecollideany(sp, self.g) # если кто то из них пересекается с другим 
+                    k = pygame.sprite.spritecollideany(sp, self.groupofallsprites) # если кто то из них пересекается с другим 
                     if k and k != sp: # и такие вообще есть а так же не пересекают самих себя 
-                        h += 1#переменная увеличивается 
-            if pygame.sprite.groupcollide(self.g, sprites_barrier, False, False) or pygame.sprite.groupcollide(
-                    self.g, borders, False, False) or (
-                                self.g != sprites_my and pygame.sprite.groupcollide(self.g, sprites_my, False,
-                                                                                    False) or h) or (
-                            self.g != sprites_enemy and pygame.sprite.groupcollide(self.g, sprites_enemy, False,
+                        counter += 1#переменная увеличивается 
+            if pygame.sprite.groupcollide(self.groupofallsprites, sprites_barrier, False, False) or pygame.sprite.groupcollide(
+                    self.groupofallsprites, borders, False, False) or (
+                                self.groupofallsprites != sprites_my and pygame.sprite.groupcollide(self.groupofallsprites, sprites_my, False,
+                                                                                    False) or counter) or (
+                            self.groupofallsprites != sprites_enemy and pygame.sprite.groupcollide(self.groupofallsprites, sprites_enemy, False,
                                                                                    False)):# если движущийся танк уткнулся в стену или если движется враг и он уткнулся в наш танк или были столкновения между врагами или движется наш танк и он уткнулся во врага 
-                self.rect.x -= self.xm# делаем откат
-                self.rect.y -= self.ym
-                self.go = False#а го меняем на фолз и в апдейте никто не движется
-                self.xm, self.ym = 0, 0# обнуляем координирующие переменные
+                self.rect.x -= self.coordinateschangingtankspositionsx# делаем откат
+                self.rect.y -= self.coordinateschangingtankspositionsy
+                self.permissiontomovement = False#а го меняем на фолз и в апдейте никто не движется
+                self.coordinateschangingtankspositionsx, self.coordinateschangingtankspositionsy = 0, 0# обнуляем координирующие переменные
             else:
-                self.go = True# иначе даем добро на обновление 
-            self.rect.x -= self.xm#а затем делаем откат
-            self.rect.y -= self.ym
+                self.permissiontomovement = True# иначе даем добро на обновление 
+            self.rect.x -= self.coordinateschangingtankspositionsx#а затем делаем откат
+            self.rect.y -= self.coordinateschangingtankspositionsy
 
     def shoot(self, group):#в зависимости направления пухи даем корректированниые координаты для красивого движения пули и команду 
-        if self.d == "up":
+        if self.directionoftank == "up":
             x1, y1 = self.rect.x + 13, self.rect.y + 2
-        if self.d == "right":
+        if self.directionoftank == "right":
             x1, y1 = self.rect.x + 28, self.rect.y + 13
-        if self.d == 'left':
+        if self.directionoftank == 'left':
             x1, y1 = self.rect.x + 2, self.rect.y + 13
-        if self.d == "down":
+        if self.directionoftank == "down":
             x1, y1 = self.rect.x + 13, self.rect.y + 28
-        Bullet(self.d, x1, y1, group, self.bullets)# и затем отправляем по нужным координатам пулю
+        Bullet(self.directionoftank, x1, y1, group, self.bullets)# и затем отправляем по нужным координатам пулю
 
     def level_up(self):# увеличение уровня 
         self.level += 1
 
     def spawn(self):# спавн нашего танка
-        if self.g == sprites_my:
+        if self.groupofallsprites == sprites_my:
             self.rect.y = 444
             self.rect.x = 188 + 16
 
 
 class Bullet(pygame.sprite.Sprite):#теперь пуля
-    def __init__(self, d, x, y, group, group2):
+    def __init__(self, directionoftank, x, y, group, group2):
         super().__init__(all_sprites)
         self.add(group)# у пули есть команда и добавляем ее в нужную команду
         self.add(group2)
-        self.d = d# направление
+        self.directionoftank = directionoftank# направление
         self.image = pygame.transform.scale(pygame.image.load("data/bullet.png"), (4, 4))#картинка нужного размера
         self.rect = self.image.get_rect()# ну и наш дорогой рект с его координатами 
         self.rect.x = x
@@ -117,13 +117,13 @@ class Bullet(pygame.sprite.Sprite):#теперь пуля
 
     def move(self):# простое движение с скоростью 6 пикселей в обновление
         x, y = 0, 0
-        if self.d == "up":
+        if self.directionoftank == "up":
             y -= 6
-        if self.d == "down":
+        if self.directionoftank == "down":
             y += 6
-        if self.d == "right":
+        if self.directionoftank == "right":
             x += 6
-        if self.d == "left":
+        if self.directionoftank == "left":
             x -= 6
         self.rect.x += x
         self.rect.y += y
@@ -170,10 +170,10 @@ class Stage(pygame.sprite.Sprite):#надпись стэйдж
         self.rect.y = y
 
     def render(self):# прорисовка
-        global k1
+        global additionalkeytostartaftermenu
         self.rect.y -= 2# выезжание надписи пока не на месте 
         if self.rect.y <= 250:
-            k1 = False
+            additionalkeytostartaftermenu = False
 
 
 class Wall(pygame.sprite.Sprite):#стена
@@ -199,41 +199,41 @@ class Game(pygame.sprite.Sprite):#класс игра
         self.rect.x = 60
         self.rect.y = -150
 
-    def render(self):# такой же понтоватый рендер как и у стэйдж вы не подумайте что я не уважаю человека писавшего просто сейчас 1 ночи и мне надо себя развлекать
-        global k, k1
+    def render(self):# такой же понтоватый рендер как и у стэйдж
+        global keytostartaftermenu, additionalkeytostartaftermenu
         self.rect.y += 2
         if self.rect.y >= 70:
-            k = False
+            keytostartaftermenu = False
 
 
 def end_game(r, scr, score):#наконец-то пошли функции управления игрой
-    global do, k, W, H#сандартные глобалы
-    k = True
-    do1 = True
+    global variablesofendingorresuminggame, keytostartaftermenu, W, H#стандартные глобалы
+    keytostartaftermenu = True
+    additionalvariableofendingorresuminggame = True
     # g2 = pygame.sprite.Group()
     gg = pygame.transform.scale(pygame.image.load("data/game_over.png"), (165, 90))# подготовливаем картинку с проигранной игрой 
-    while do1:# пока ду1 тру
+    while additionalvariableofendingorresuminggame:# пока ду1 тру
         scr.blit(gg, ((W - 165) // 2, (H - 90) // 2))  # прорисовываем поверх основной плоскости в какой-то не столь отдаленной местности
         for e in pygame.event.get():#если в последовательности последних действий нажата кнопка выхода
             if e.type == pygame.QUIT:
-                do1 = False# то оба ду меняем на фолс
-                do = False
+                additionalvariableofendingorresuminggame = False# то оба ду меняем на фолс
+                variablesofendingorresuminggame = False
             if e.type == pygame.KEYDOWN and e.key == pygame.K_t:# если же была  нажата клавиша t  
-                do1 = False# то фолс только ду1
+                additionalvariableofendingorresuminggame = False# то фолс только ду1
         # g2.draw(scr)
         pygame.display.flip()#обновляем честь экрана
-    do1 = True# и так понятно
-    if do:#если ду остался тру
-        while do1:# если ду1 тру
-            scr.fill((0, 0, 0))наполняем черным плоскость
+    additionalvariableofendingorresuminggame = True# и так понятно
+    if variablesofendingorresuminggame:#если ду остался тру
+        while additionalvariableofendingorresuminggame:# если ду1 тру
+            scr.fill((0, 0, 0))#наполняем черным плоскость
             scr.blit(gg, ((W - 165) // 2, 0))#выталкиваем проигрышь
             for e in pygame.event.get():#если была нажата кнопка выхода то ду1 и ду фолс
                 if e.type == pygame.QUIT:
-                    do1 = False
-                    do = False
+                    additionalvariableofendingorresuminggame = False
+                    variablesofendingorresuminggame = False
 
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE:#если же был нажат пробел то только ду1 фолс
-                    do1 = False
+                    additionalvariableofendingorresuminggame = False
             font = pygame.font.Font(None, 50)#настройки для надписей ты проиграл или ты выиграл и твой счет
             text = font.render("You {}".format(r), 1, (100, 255, 100))
             text_x = W // 2 - text.get_width() // 2
@@ -256,37 +256,39 @@ def end_game(r, scr, score):#наконец-то пошли функции уп�
 
 
 def main():#главная программа
-    global k, k1, screen, g, s, borders, buttons, sprites_wall, sprites_enemy, do, if_paused# всякие глобалы
+    global keytostartaftermenu, additionalkeytostartaftermenu, screen, groupofallsprites, groupofcontrollingstagesprites, borders, buttons, sprites_wall, sprites_enemy, variablesofendingorresuminggame, if_paused# всякие глобалы
     if_paused = False#всякие логические установки
-    k = True
-    k1 = True
+    keytostartaftermenu = True
+    additionalkeytostartaftermenu = True
     screen = pygame.display.set_mode((W, H))#возводим экран
     screen.fill((0, 0, 0))#наполняем его черным
     running = True#логические установки
-    g = pygame.sprite.Group()#г делаем спрайтом
-    game = Game(g, "battle_city.jpg")#главная картинка игры
-    s = pygame.sprite.Group()#с тоже спрайт
+    groupofallsprites = pygame.sprite.Group()#г делаем спрайтом
+    game = Game(groupofallsprites, "battle_city.jpg")#главная картинка игры
+    groupofcontrollingstagesprites = pygame.sprite.Group()#с тоже спрайт
     tank1 = Tank(sprites_my, 92, 60, yel_up, "yellow", 2, 1, 3)#задаем главны танк
     tank1.spawn()#спавним его
     score = 0#установки очков на ноль
     tanks_killed = 0
     game_over = False#игра не проиграна
-    stage = Stage(s, (W - 205) // 2, 550, 'stage', 205, 40)#картинки с выборами уровня
-    one = Stage(s, (W - 40) // 4, 600, 'one', 40, 45)
-    two = Stage(s, (W - 45) // 4 * 2, 600, 'two', 45, 45)
-    three = Stage(s, (W - 45) // 4 * 3, 600, 'three', 40, 45)
+    stage = Stage(groupofcontrollingstagesprites, (W - 205) // 2, 550, 'stage', 205, 40)#картинки с выборами уровня
+    one = Stage(groupofcontrollingstagesprites, (W - 40) // 4, 600, 'one', 40, 45)
+    two = Stage(groupofcontrollingstagesprites, (W - 45) // 4 * 2, 600, 'two', 45, 45)
+    three = Stage(groupofcontrollingstagesprites, (W - 45) // 4 * 3, 600, 'three', 40, 45)
     our_level = 0
+    gift = 0
     borders = pygame.sprite.Group()#границы-спрайты
     buttons = pygame.sprite.Group()# кнопнки-спрайты
     Border(0, 0, W, 60)#границы по границе поля БАДУМТС
     Border(0, 0, 60, H)
     Border(0, H - 60, W, 60)
     Border(W - 60, 0, 60, H)
+	
     while running:#пока играем
         pygame.display.flip()#обновляем часть экрана
         for event in pygame.event.get():#рассматриваем пооследовательность последних клавиш
             if event.type == pygame.QUIT:#если нажали выход то все ливаем
-                do = False
+                variablesofendingorresuminggame = False
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:#если куда-то кто-то тыкнул мышкой
                 a = event.pos#на а вешаем место куда кто-то тыкнул
@@ -299,22 +301,22 @@ def main():#главная программа
                 if three.rect.x < a[0] and three.rect.x + three.rect[2] > a[0] and three.rect.y < a[
                     1] and three.rect.y + three.rect[3] > a[1]:
                     our_level = 3
-        if k:#если тру то запускаем шарманку
+        if keytostartaftermenu:#если тру то запускаем шарманку
             game.render()
-        if k1:
+        if additionalkeytostartaftermenu:
             stage.render()
             one.render()
             two.render()
             three.render()
-        g.draw(screen)#присваиваем их как спрайты для взаимодействий
-        s.draw(screen)
+        groupofallsprites.draw(screen)#присваиваем их как спрайты для взаимодействий
+        groupofcontrollingstagesprites.draw(screen)
         if our_level != 0:# если уровень не 0 то убираем меню 
             running = False
         time.sleep(0.01)# спим
 
-    if do:# есои ду еще тру
+    if variablesofendingorresuminggame:# есои ду еще тру
         Stage(the_flag, 12 * 16 + 60, 24 * 16 + 60, 'flag', 32, 32)#спавним флаг где надо
-        board = open("board{}.txt".format(our_level)).read().split('\n')#читаем расстановку уровня 
+        board = open("data/board{}.txt".format(our_level)).read().split('\n')#читаем расстановку уровня 
         walls = []#массив со стенами
         sprites_wall = pygame.sprite.Group()#стены и враги спрайты
         sprites_enemy = pygame.sprite.Group()
@@ -329,12 +331,12 @@ def main():#главная программа
         pause.add(all_sprites)
         running = True#раннинг снова тру
     screen.fill((0, 0, 0))#скрин черный
-    while running:#цикл
-        tank1.go = False# го у нашего танка фолс поэтому он стоит
+    while running:#цикл	    
+        tank1.permissiontomovement = False# го у нашего танка фолс поэтому он стоит
         screen.fill((0, 0, 0))# черный экран
         for event in pygame.event.get():# чекаем нажмаемые клавиши
             if event.type == pygame.QUIT:#если выход то ливаем
-                do = False
+                variablesofendingorresuminggame = False
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:#если мышка нажала на что то
                 a = event.pos#пишем место куда она нажала в а 
@@ -361,7 +363,7 @@ def main():#главная программа
         while if_paused:# если прожали паузу то 
             for event in pygame.event.get():#чекаем если нажали на выход то ливаем
                 if event.type == pygame.QUIT:
-                    do = False;
+                    variablesofendingorresuminggame = False;
                     running = False;
                     if_paused = False
                 if event.type == pygame.MOUSEBUTTONDOWN:# чекаем если нажали 
@@ -415,7 +417,7 @@ def main():#главная программа
                 if t.hp == 1:# если у черта хп = 1 то он сереет и добавляет нам очков и меняет направление
                     t.color = "gray"
                     score += 150
-                    t.direction(t.d)
+                    t.direction(t.directionoftank)
             if t.hp == 0:# если черт помер то его детонирует 
                 t.image = pygame.transform.scale(pygame.image.load("data/{}.png".format('boom1')), (32, 32))
                 sprites_enemy.draw(screen)# на плоскости перерисовывают группу чертов
@@ -431,16 +433,17 @@ def main():#главная программа
                 t.image = pygame.transform.scale(pygame.image.load("data/{}.png".format('boom3')), (32, 32))
                 sprites_enemy.draw(screen)
                 t.kill()
-            if not t.go:# если черт не может куда-то пройти то рандомом поворачиваем его и еще двигаем
-                d = ["up", "down", "left", "right"][random.randint(0, 3)]
-                t.direction(d)
-                t.move(d)
+            if not t.permissiontomovement:# если черт не может куда-то пройти то рандомом поворачиваем его и еще двигаем
+                directionoftank = ["up", "down", "left", "right"][random.randint(0, 3)]
+                t.direction(directionoftank)
+                t.move(directionoftank)
             else:#иначе просто двигаем
-                t.move(t.d)
+                t.move(t.directionoftank)
             if len(t.bullets) < t.max_bullets:#если кол во пуль меньше максимального то стреляем на самом деле просто стреляем
                 sh = random.randint(0, 20)#рандомим сш если попали в 3 то стреляем буржуйскими пулями
                 if sh == 3:
                     t.shoot(sprites_en_bullet)
+		
 
         if tanks_killed == 16 and not gift:# если ты завалил 16 танков и не собрал подарок то 
             x, y = 0, 0# координаты по 0
@@ -505,7 +508,7 @@ def main():#главная программа
 
 pygame.init()#запускаем шарманку и пишем всякие константы и спрайтв присваеваем
 W, H = 32 * 13 + 120, 32 * 13 + 120
-do = True
+variablesofendingorresuminggame = True
 all_sprites = pygame.sprite.Group()
 
 walls = []
@@ -521,6 +524,6 @@ mini_tanks = pygame.sprite.Group()
 the_flag = pygame.sprite.Group()
 yel_up = pygame.transform.scale(pygame.image.load("data/yellow_tank_up_level1.png"), (64, 30))#ну и наш танк
 clock = pygame.time.Clock()
-while do:# пока ду тру выполняем мэйн
+while variablesofendingorresuminggame:# пока ду тру выполняем мэйн
     main()
 pygame.quit()#выходим их пайгейма
